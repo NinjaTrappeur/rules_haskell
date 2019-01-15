@@ -23,8 +23,8 @@ def _run_ghc(hs, inputs, outputs, mnemonic, arguments, params_file = None, env =
         env = hs.env
 
     args = hs.actions.args()
-    args.add([hs.tools.ghc])
-    args.add([
+    args.add(hs.tools.ghc)
+    args.add_all([
         # GHC uses C compiler for assemly, linking and preprocessing as well.
         "-pgma",
         hs.tools.cc.path,

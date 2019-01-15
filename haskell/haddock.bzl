@@ -47,7 +47,7 @@ def _haskell_doc_aspect_impl(target, ctx):
     args = ctx.actions.args()
     args.add("--package-name={0}".format(package_id))
     args.add("--package-version={0}".format(version))
-    args.add([
+    args.add_all([
         "-D",
         haddock_file.path,
         "-o",
@@ -58,7 +58,7 @@ def _haskell_doc_aspect_impl(target, ctx):
         "--hyperlinked-source",
     ])
 
-    args.add(hs.toolchain.haddock_flags)
+    args.add_all(hs.toolchain.haddock_flags)
 
     transitive_haddocks = {}
     transitive_html = {}
@@ -81,9 +81,9 @@ def _haskell_doc_aspect_impl(target, ctx):
 
     ghc_args = ctx.actions.args()
     for x in target[HaskellLibraryInfo].ghc_args:
-        ghc_args.add(["--optghc", x])
-    ghc_args.add([x.path for x in set.to_list(target[HaskellLibraryInfo].source_files)])
-    ghc_args.add(["-v0"])
+        ghc_args.add_all(["--optghc", x])
+    ghc_args.add_all([x.path for x in set.to_list(target[HaskellLibraryInfo].source_files)])
+    ghc_args.add("-v0")
 
     locale_archive_depset = (
         depset([hs.toolchain.locale_archive]) if hs.toolchain.locale_archive != None else depset()
@@ -214,7 +214,7 @@ def _haskell_doc_rule_impl(ctx):
     index_root = ctx.actions.declare_directory(index_root_raw)
 
     args = ctx.actions.args()
-    args.add([
+    args.add_all([
         "-o",
         index_root.path,
         "--title={0}".format(ctx.attr.name),
@@ -240,7 +240,7 @@ def _haskell_doc_rule_impl(ctx):
                 ))
 
     for cache in set.to_list(all_caches):
-        args.add(["--optghc=-package-db={0}".format(cache.dirname)])
+        args.add("--optghc=-package-db={0}".format(cache.dirname))
 
     locale_archive_depset = (
         depset([hs.toolchain.locale_archive]) if hs.toolchain.locale_archive != None else depset()
