@@ -7,9 +7,9 @@ haskell_repositories()
 
 http_archive(
     name = "io_tweag_rules_nixpkgs",
-    sha256 = "4f924d839d3a5896e3e22ba1282c686b2c078fd4c98d564ec427ac83ec66302d",
-    strip_prefix = "rules_nixpkgs-0.5.1",
-    urls = ["https://github.com/tweag/rules_nixpkgs/archive/v0.5.1.tar.gz"],
+    sha256 = "5883ea01f3075354ab622cfe82542da01fe2b57a48f4c3f7610b4d14a3fced11",
+    strip_prefix = "rules_nixpkgs-c232b296e795ad688854ff3d3d2de6e7ad45f0b4",
+    urls = ["https://github.com/tweag/rules_nixpkgs/archive/c232b296e795ad688854ff3d3d2de6e7ad45f0b4.tar.gz"],
 )
 
 load(
@@ -33,6 +33,11 @@ haskell_nixpkgs_package(
     # if `repository` is not set, but our nix_file uses `./nixpkgs/`.
     # TODO(Profpatsch)
     repositories = {"nixpkgs": "//nixpkgs:NOTUSED"},
+    nixopts = [
+        "--option",
+        "sandbox",
+        "false"
+    ],
 )
 
 http_archive(
@@ -56,6 +61,11 @@ register_toolchains(
 nixpkgs_cc_configure(
     nix_file = "//nixpkgs:cc-toolchain.nix",
     repository = "@nixpkgs",
+    nixopts = [
+        "--option",
+        "sandbox",
+        "false"
+    ],
 )
 
 nixpkgs_package(
@@ -125,6 +135,9 @@ haskell_nixpkgs_packageset(
     nixopts = [
         "-j",
         "1",
+        "--option",
+        "sandbox",
+        "false"
     ],
     repositories = {"nixpkgs": "@nixpkgs"},
 )
@@ -170,6 +183,11 @@ nixpkgs_package(
       ''
     """,
     repository = "@nixpkgs",
+    nixopts = [
+        "--option",
+        "sandbox",
+        "false"
+    ],
 )
 
 http_archive(
