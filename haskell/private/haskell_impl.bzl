@@ -24,6 +24,7 @@ load(":private/mode.bzl", "is_profiling_enabled")
 load(
     ":private/path_utils.bzl",
     "ln",
+    "target_unique_name",
 )
 load(":private/pkg_id.bzl", "pkg_id")
 load(":private/set.bzl", "set")
@@ -306,6 +307,7 @@ def haskell_library_impl(ctx):
         interface_dirs = interface_dirs,
         prebuilt_dependencies = dep_info.prebuilt_dependencies,
         external_libraries = dep_info.external_libraries,
+        extra_libraries = dep_info.extra_libraries,
     )
     lib_info = HaskellLibraryInfo(
         package_id = pkg_id.to_string(my_pkg_id),
@@ -355,6 +357,35 @@ def haskell_library_impl(ctx):
         lib_info,
         default_info,
     ]
+
+def haskell_import_impl(ctx):
+    hs = haskell_context(ctx)
+
+    if ctx.attr.package:
+        package = ctx.attr.package
+    else:
+        package = ctx.label.name
+
+    id_file = hs.actions.declare_file(target_unique_name(hs, "id"))
+    hs.actions.run_shell(
+        inputs = [hs.tools.ghc_pkg],
+        outputs = [id_file],
+        command = """
+        "$1" --simple-output -v1 field "$2" id > "$3"
+        """,
+        arguments = [
+            hs.tools.ghc_pkg.path,
+            package,
+            id_file.path,
+        ],
+    )
+
+    prebuilt_package_info = HaskellPrebuiltPackageInfo(
+        package = package,
+        id_file = id_file,
+    )
+
+    return [prebuilt_package_info]
 
 def _exposed_modules_reexports(exports):
     """Creates a ghc-pkg-compatible list of reexport declarations.

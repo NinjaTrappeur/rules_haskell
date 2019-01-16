@@ -4,6 +4,18 @@ load("@bazel_skylib//lib:paths.bzl", "paths")
 load(":private/path_utils.bzl", "target_unique_name")
 load(":private/pkg_id.bzl", "pkg_id")
 load(":private/set.bzl", "set")
+load(":private/path_utils.bzl", "get_lib_name")
+
+def _get_extra_libraries(ext_libs):
+    extra_libs = []
+    seen_libs = set.empty()
+    for ext_lib in set.to_list(ext_libs):
+        lib = ext_lib.mangled_lib
+        lib_name = get_lib_name(lib)
+        if not set.is_member(seen_libs, lib_name):
+            set.mutable_insert(seen_libs, lib_name)
+            extra_libs.append(lib_name)
+    return extra_libs
 
 def package(hs, dep_info, interfaces_dir, interfaces_dir_prof, static_library, dynamic_library, exposed_modules_file, other_modules, my_pkg_id, static_library_prof):
     """Create GHC package using ghc-pkg.
@@ -50,10 +62,10 @@ def package(hs, dep_info, interfaces_dir, interfaces_dir_prof, static_library, d
         "library-dirs": "${pkgroot}",
         "dynamic-library-dirs": "${pkgroot}",
         "hs-libraries": pkg_id.library_name(hs, my_pkg_id),
+        "extra-libraries": " ".join(_get_extra_libraries(dep_info.extra_libraries)),
         "depends": ", ".join(
-            # XXX Ideally we would like to specify here prebuilt dependencies
-            # too, but we don't know their versions, and package ids without
-            # versions will be rejected as unknown.
+            # Prebuilt dependencies are added further down, since their
+            # package-ids are not available as strings but in build outputs.
             set.to_list(dep_info.package_ids),
         ),
     }
@@ -70,18 +82,26 @@ def package(hs, dep_info, interfaces_dir, interfaces_dir_prof, static_library, d
         ]) + "\n",
     )
 
+    # Collect the package id files of all prebuilt dependencies.
+    prebuilt_deps_id_files = [
+        dep.id_file
+        for dep in set.to_list(dep_info.prebuilt_dependencies)
+    ]
+
     # Combine exposed modules and other metadata to form the package
     # configuration file.
     hs.actions.run_shell(
-        inputs = [metadata_file, exposed_modules_file],
+        inputs = [metadata_file, exposed_modules_file] + prebuilt_deps_id_files,
         outputs = [conf_file],
         command = """
-        cat $1 > $3
-        echo "exposed-modules: $(< $2)" >> $3
+        cat $1 > $4
+        echo "exposed-modules: $(< $2)" >> $4
+        echo "depends: $(cat $3 | tr "\\n" " ")" >> $4
         """,
         arguments = [
             metadata_file.path,
             exposed_modules_file.path,
+            " ".join([f.path for f in prebuilt_deps_id_files]),
             conf_file.path,
         ],
         use_default_shell_env = True,
