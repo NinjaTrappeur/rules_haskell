@@ -54,6 +54,7 @@ haskell_proto_toolchain(
     testonly = 0,
     plugin = "@hackage-proto-lens-protoc//:bin/proto-lens-protoc",
     protoc = "@com_google_protobuf//:protoc",
+    proto_lens_protoc_version = "0.4.0.1",
     deps = [
         "@hackage//:base",
         "@hackage//:bytestring",

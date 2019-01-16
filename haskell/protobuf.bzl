@@ -115,8 +115,19 @@ def _haskell_proto_aspect_impl(target, ctx):
             ),
         ))
 
+    # Proto-lens-protoc introduced a breaking change on 0.4.0
+    # TODO: remove this dirty hack when we can assume
+    # everybody's using proto-lens-protoc > 0.4.
+    plugin_flag = ""
+    pv = ctx.toolchains["@io_tweag_rules_haskell//protobuf:toolchain"]\
+        .proto_lens_protoc_version
+    if int(pv[0]) >= 0 and int(pv[2]) >= 4:
+        plugin_flag = "--haskell_out=no-runtime:"
+    else:
+        plugin_flag = "--haskell_out=no-reexports:"
+
     args.add([
-        "--haskell_out=no-runtime:" + paths.join(
+        plugin_flag + paths.join(
             hs_files[0].root.path,
             src_prefix,
         ),
@@ -262,6 +273,7 @@ use the 'deps' attribute instead.
                 protoc = ctx.executable.protoc,
                 plugin = ctx.executable.plugin,
             ),
+            proto_lens_protoc_version = ctx.attr.proto_lens_protoc_version,
             deps = ctx.attr.deps,
             prebuilt_deps = ctx.attr.prebuilt_deps,
         ),
@@ -284,6 +296,13 @@ _protobuf_toolchain = rule(
             mandatory = True,
             doc = "proto-lens-protoc plugin for protoc",
         ),
+        # We need to explicitely get the proto-lens-protoc version
+        # to handle some cli flag changes.
+        # TODO: remove when we can assume that proto-lens-protoc > 0.4
+        "proto_lens_protoc_version": attr.string(
+            doc = "proto-lens-protoc plugin version",
+            default = "0.3",
+        ),
         "deps": attr.label_list(
             doc = "List of other Haskell libraries to be linked to protobuf libraries.",
         ),
@@ -299,6 +318,7 @@ def haskell_proto_toolchain(
         deps = [],
         prebuilt_deps = [],
         protoc = Label("@com_google_protobuf//:protoc"),
+        proto_lens_protoc_version = "0.3.1.2",
         **kwargs):
     """Declare a Haskell protobuf toolchain.
 
@@ -358,6 +378,7 @@ def haskell_proto_toolchain(
     _protobuf_toolchain(
         name = impl_name,
         plugin = plugin,
+        proto_lens_protoc_version = proto_lens_protoc_version,
         deps = deps,
         prebuilt_deps = prebuilt_deps,
         protoc = protoc,
